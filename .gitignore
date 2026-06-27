@@ -1,0 +1,11 @@
+/vendor/
+/.env
+/storage/logs/*.log
+/storage/uploads/products/*
+/storage/uploads/categories/*
+/storage/uploads/brands/*
+/storage/uploads/profiles/*
+!/storage/uploads/**/.gitkeep
+!/storage/logs/.gitkeep
+.DS_Store
+*.swp
