@@ -114,7 +114,7 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
             'SELECT po.id AS option_id, po.name AS option_name,
                     pov.id AS value_id, pov.value, pov.price_modifier
              FROM product_options po
-             JOIN product_option_values pov ON pov.product_option_id = po.id
+             LEFT JOIN product_option_values pov ON pov.product_option_id = po.id
              WHERE po.product_id = ?
              ORDER BY po.sort_order, pov.sort_order',
             [$productId]

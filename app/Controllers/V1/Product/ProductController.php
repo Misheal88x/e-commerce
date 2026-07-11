@@ -37,6 +37,13 @@ class ProductController extends BaseController
         return $this->success($product, 'Product retrieved.');
     }
 
+    public function details(Request $request): Response
+    {
+        $slug    = $request->param('slug');
+        $product = $this->productService->getFullDetails($slug);
+        return $this->success($product, 'Product details retrieved.');
+    }
+
     public function related(Request $request): Response
     {
         $id      = (int) $request->param('id');

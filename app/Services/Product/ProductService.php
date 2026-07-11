@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Product;
 
 use App\Repositories\Contracts\ProductRepositoryInterface;
+use App\Repositories\Contracts\CategoryRepositoryInterface;
+use App\Repositories\Contracts\BrandRepositoryInterface;
 use App\DTOs\Product\ProductFilterDTO;
 use App\Helpers\PaginationHelper;
 use App\Helpers\SlugHelper;
@@ -14,8 +16,12 @@ use App\Exceptions\NotFoundException;
 
 class ProductService
 {
+    private const MAX_RELATED = 10;
+
     public function __construct(
-        private readonly ProductRepositoryInterface $productRepo
+        private readonly ProductRepositoryInterface $productRepo,
+        private readonly CategoryRepositoryInterface $categoryRepo,
+        private readonly BrandRepositoryInterface $brandRepo
     ) {}
 
     public function getProducts(ProductFilterDTO $filter): array
@@ -91,7 +97,35 @@ class ProductService
 
     public function getRelated(int $productId, int $limit = 8): array
     {
-        return $this->productRepo->findRelated($productId, $limit);
+        return $this->productRepo->findRelated($productId, min($limit, self::MAX_RELATED));
+    }
+
+    public function getFullDetails(string $slug): array
+    {
+        $product = $this->productRepo->findBySlug($slug);
+
+        if (!$product) {
+            throw new NotFoundException('Product not found.');
+        }
+
+        $productId = (int) $product['id'];
+
+        $product['images']  = $this->productRepo->findImages($productId);
+        $product['options'] = $this->groupOptions($this->productRepo->findOptions($productId));
+        $product['category'] = $product['category_id'] !== null
+            ? $this->categoryRepo->findById((int) $product['category_id'])
+            : null;
+        $product['brand'] = $product['brand_id'] !== null
+            ? $this->brandRepo->findById((int) $product['brand_id'])
+            : null;
+        $product['related_products'] = $this->productRepo->findRelated($productId, self::MAX_RELATED);
+
+        unset(
+            $product['category_name'], $product['category_icon'],
+            $product['brand_name'], $product['brand_icon']
+        );
+
+        return $product;
     }
 
     private function groupOptions(array $flat): array
@@ -106,11 +140,13 @@ class ProductService
                     'values' => [],
                 ];
             }
-            $grouped[$optionId]['values'][] = [
-                'id'             => $row['value_id'],
-                'value'          => $row['value'],
-                'price_modifier' => $row['price_modifier'],
-            ];
+            if ($row['value_id'] !== null) {
+                $grouped[$optionId]['values'][] = [
+                    'id'             => $row['value_id'],
+                    'value'          => $row['value'],
+                    'price_modifier' => $row['price_modifier'],
+                ];
+            }
         }
         return array_values($grouped);
     }
