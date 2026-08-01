@@ -11,5 +11,6 @@ interface ReviewRepositoryInterface
     public function findByUserAndProduct(int $userId, int $productId): ?array;
     public function create(array $data): int;
     public function getRatingStats(int $productId): array;
-    public function hasPurchased(int $userId, int $productId): bool;
+    public function findByIdAndUser(int $reviewId, int $userId): ?array;
+    public function delete(int $reviewId): void;
 }

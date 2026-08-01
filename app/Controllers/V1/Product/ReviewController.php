@@ -38,4 +38,12 @@ class ReviewController extends BaseController
         $result    = $this->reviewService->addReview($dto);
         return $this->created($result, 'Review submitted successfully.');
     }
+
+    public function destroy(Request $request): Response
+    {
+        $productId = (int) $request->param('id');
+        $reviewId  = (int) $request->param('reviewId');
+        $this->reviewService->deleteReview($reviewId, $productId, $this->userId());
+        return $this->deleted('Review deleted successfully.');
+    }
 }

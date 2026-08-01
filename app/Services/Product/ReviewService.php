@@ -40,11 +40,6 @@ class ReviewService
             throw new HttpException('You have already reviewed this product.', 409);
         }
 
-        // Require purchase
-        if (!$this->reviewRepo->hasPurchased($dto->userId, $dto->productId)) {
-            throw new HttpException('You can only review products you have purchased.', 403);
-        }
-
         $id = $this->reviewRepo->create([
             'user_id'    => $dto->userId,
             'product_id' => $dto->productId,
@@ -53,5 +48,20 @@ class ReviewService
         ]);
 
         return ['id' => $id, 'message' => 'Review submitted successfully.'];
+    }
+
+    public function deleteReview(int $reviewId, int $productId, int $userId): void
+    {
+        $review = $this->reviewRepo->findByIdAndUser($reviewId, $userId);
+
+        if (!$review) {
+            throw new NotFoundException('Review not found.');
+        }
+
+        if ((int) $review['product_id'] !== $productId) {
+            throw new NotFoundException('Review not found.');
+        }
+
+        $this->reviewRepo->delete($reviewId);
     }
 }

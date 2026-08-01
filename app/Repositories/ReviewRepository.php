@@ -66,13 +66,16 @@ class ReviewRepository extends BaseRepository implements ReviewRepositoryInterfa
         return $row ?? [];
     }
 
-    public function hasPurchased(int $userId, int $productId): bool
+    public function findByIdAndUser(int $reviewId, int $userId): ?array
     {
-        return (int) $this->fetchColumn(
-            'SELECT COUNT(*) FROM order_items oi
-             JOIN orders o ON o.id = oi.order_id
-             WHERE o.user_id = ? AND oi.product_id = ? AND o.status = "finished"',
-            [$userId, $productId]
-        ) > 0;
+        return $this->fetchOne(
+            'SELECT * FROM product_reviews WHERE id = ? AND user_id = ?',
+            [$reviewId, $userId]
+        );
+    }
+
+    public function delete(int $reviewId): void
+    {
+        $this->execute('DELETE FROM product_reviews WHERE id = ?', [$reviewId]);
     }
 }
