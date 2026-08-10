@@ -34,11 +34,11 @@ class CartRepository extends BaseRepository implements CartRepositoryInterface
         );
     }
 
-    public function findItem(int $cartId, int $productId): ?array
+    public function findItem(int $cartId, int $productId, string $optionsHash): ?array
     {
         return $this->fetchOne(
-            'SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ?',
-            [$cartId, $productId]
+            'SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ? AND options_hash = ?',
+            [$cartId, $productId, $optionsHash]
         );
     }
 
@@ -47,12 +47,12 @@ class CartRepository extends BaseRepository implements CartRepositoryInterface
         return $this->fetchOne('SELECT * FROM cart_items WHERE id = ?', [$cartItemId]);
     }
 
-    public function addItem(int $cartId, int $productId, int $quantity, ?string $optionsJson): int
+    public function addItem(int $cartId, int $productId, int $quantity, ?string $optionsJson, string $optionsHash): int
     {
         return (int) $this->insert(
-            'INSERT INTO cart_items (cart_id, product_id, quantity, selected_options_json)
-             VALUES (?, ?, ?, ?)',
-            [$cartId, $productId, $quantity, $optionsJson]
+            'INSERT INTO cart_items (cart_id, product_id, quantity, selected_options_json, options_hash)
+             VALUES (?, ?, ?, ?, ?)',
+            [$cartId, $productId, $quantity, $optionsJson, $optionsHash]
         );
     }
 
@@ -72,22 +72,6 @@ class CartRepository extends BaseRepository implements CartRepositoryInterface
     public function clearCart(int $cartId): void
     {
         $this->execute('DELETE FROM cart_items WHERE cart_id = ?', [$cartId]);
-    }
-
-    public function getCartTotal(int $cartId): float
-    {
-        $result = $this->fetchOne(
-            'SELECT COALESCE(SUM(
-                CASE WHEN p.has_offer = 1 AND p.offer_price IS NOT NULL
-                     THEN p.offer_price * ci.quantity
-                     ELSE p.price * ci.quantity END
-             ), 0.00) AS total
-             FROM cart_items ci
-             JOIN products p ON p.id = ci.product_id
-             WHERE ci.cart_id = ?',
-            [$cartId]
-        );
-        return (float) ($result['total'] ?? 0);
     }
 
     public function getItemCount(int $cartId): int

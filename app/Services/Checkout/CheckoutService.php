@@ -9,6 +9,7 @@ use App\Repositories\Contracts\CartRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\AddressRepositoryInterface;
+use App\Services\Cart\CartPricingService;
 use App\Exceptions\HttpException;
 use App\Exceptions\NotFoundException;
 use App\Enums\OrderStatus;
@@ -22,6 +23,7 @@ class CheckoutService
         private readonly OrderRepositoryInterface   $orderRepo,
         private readonly ProductRepositoryInterface $productRepo,
         private readonly AddressRepositoryInterface $addressRepo,
+        private readonly CartPricingService         $pricing,
     ) {}
 
     public function placeOrder(CheckoutDTO $dto): array
@@ -37,6 +39,10 @@ class CheckoutService
         if (empty($items)) {
             throw new HttpException('Cart is empty.', 422);
         }
+
+        // Resolves each item's selected option values into their price_modifier
+        // so the order subtotal and snapshots match what the cart displayed.
+        $items = $this->pricing->enrichItems($items);
 
         $address = $this->addressRepo->findByIdAndUserId($dto->addressId, $dto->userId);
         if (!$address) {
@@ -55,11 +61,8 @@ class CheckoutService
                 }
             }
 
-            // Calculate subtotal
-            $subtotal = array_sum(array_map(
-                fn($i) => (float) $i['effective_price'] * (int) $i['quantity'],
-                $items
-            ));
+            // Calculate subtotal (base price ± selected option price_modifiers, per quantity)
+            $subtotal = $this->pricing->calculateSubtotal($items);
 
             // Fetch delivery fee
             $stmt = $db->prepare('SELECT name, fee, estimated_delivery_time FROM delivery_types WHERE id = ? AND is_active = 1');
@@ -108,13 +111,13 @@ class CheckoutService
 
             // Create order items + decrement stock
             foreach ($items as $item) {
-                $product = $this->productRepo->findById((int) $item['product_id']);
+                $modifier = (float) $item['options_price_modifier'];
                 $this->orderRepo->createItem([
                     'order_id'               => $orderId,
                     'product_id'             => $item['product_id'],
                     'product_name_snapshot'  => $item['name'],
-                    'product_price_snapshot' => $item['price'],
-                    'offer_price_snapshot'   => $item['has_offer'] ? $item['offer_price'] : null,
+                    'product_price_snapshot' => (float) $item['price'] + $modifier,
+                    'offer_price_snapshot'   => $item['has_offer'] ? (float) $item['offer_price'] + $modifier : null,
                     'quantity'               => $item['quantity'],
                     'selected_options_json'  => $item['selected_options_json'],
                 ]);

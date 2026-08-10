@@ -6,27 +6,33 @@ namespace App\Services\Cart;
 
 use App\Repositories\Contracts\CartRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
+use App\Repositories\Contracts\ProductOptionRepositoryInterface;
+use App\Repositories\Contracts\ProductOptionValueRepositoryInterface;
 use App\DTOs\Cart\AddToCartDTO;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\HttpException;
+use App\Exceptions\ValidationException;
 
 class CartService
 {
     public function __construct(
-        private readonly CartRepositoryInterface    $cartRepo,
-        private readonly ProductRepositoryInterface $productRepo,
+        private readonly CartRepositoryInterface             $cartRepo,
+        private readonly ProductRepositoryInterface           $productRepo,
+        private readonly ProductOptionRepositoryInterface      $productOptionRepo,
+        private readonly ProductOptionValueRepositoryInterface $productOptionValueRepo,
+        private readonly CartPricingService                   $pricing,
     ) {}
 
     public function getCart(int $userId): array
     {
-        $cart  = $this->getOrCreateCart($userId);
-        $items = $this->cartRepo->findItems($cart['id']);
-        $total = $this->cartRepo->getCartTotal($cart['id']);
+        $cart     = $this->getOrCreateCart($userId);
+        $rawItems = $this->cartRepo->findItems($cart['id']);
+        $items    = $this->pricing->enrichItems($rawItems);
 
         return [
             'cart_id'     => $cart['id'],
             'total_items' => count($items),
-            'subtotal'    => $total,
+            'subtotal'    => $this->pricing->calculateSubtotal($items),
             'items'       => $items,
         ];
     }
@@ -39,12 +45,15 @@ class CartService
             throw new NotFoundException('Product not found.');
         }
 
+        $normalizedOptions = $this->resolveSelectedOptions($dto->productId, $dto->selectedOptions);
+        $optionsJson        = empty($normalizedOptions) ? null : json_encode($normalizedOptions);
+        $optionsHash         = $this->hashOptions($normalizedOptions);
+
         $cart = $this->getOrCreateCart($dto->userId);
 
-        $existingItem = $this->cartRepo->findItem($cart['id'], $dto->productId);
+        $existingItem = $this->cartRepo->findItem($cart['id'], $dto->productId, $optionsHash);
         $totalQty     = $dto->quantity + ($existingItem ? (int) $existingItem['quantity'] : 0);
 
-        $maxQty = (int) config('app')['cart_max_quantity'] ?? 10;
         if ($totalQty > (int) $product['stock_quantity']) {
             throw new HttpException('Requested quantity exceeds available stock.', 422);
         }
@@ -52,7 +61,7 @@ class CartService
         if ($existingItem) {
             $this->cartRepo->updateItemQuantity((int) $existingItem['id'], $totalQty);
         } else {
-            $this->cartRepo->addItem($cart['id'], $dto->productId, $dto->quantity, $dto->selectedOptionsJson());
+            $this->cartRepo->addItem($cart['id'], $dto->productId, $dto->quantity, $optionsJson, $optionsHash);
         }
 
         return $this->getCart($dto->userId);
@@ -99,6 +108,67 @@ class CartService
         if ($cart) {
             $this->cartRepo->clearCart((int) $cart['id']);
         }
+    }
+
+    /**
+     * Validates the client-supplied option selections against the product's
+     * option groups: every group must have exactly one value selected, and
+     * every selected value must actually belong to its group.
+     *
+     * @param array<int,int> $selectedOptions option_id => option_value_id
+     * @return array<int,int> normalized, key-sorted option_id => option_value_id
+     */
+    private function resolveSelectedOptions(int $productId, array $selectedOptions): array
+    {
+        $options = $this->productOptionRepo->findByProductId($productId);
+
+        if (empty($options)) {
+            if (!empty($selectedOptions)) {
+                throw new HttpException('This product does not have selectable options.', 422);
+            }
+            return [];
+        }
+
+        $errors           = [];
+        $normalized       = [];
+        $allowedOptionIds = array_map(fn(array $o) => (int) $o['id'], $options);
+
+        foreach ($options as $option) {
+            $optionId = (int) $option['id'];
+
+            if (!array_key_exists($optionId, $selectedOptions)) {
+                $errors["option_{$optionId}"] = "Please select a value for \"{$option['name']}\".";
+                continue;
+            }
+
+            $valueId = $selectedOptions[$optionId];
+            $value   = $this->productOptionValueRepo->findByIdAndOptionId($valueId, $optionId);
+
+            if (!$value) {
+                $errors["option_{$optionId}"] = "Invalid value selected for \"{$option['name']}\".";
+                continue;
+            }
+
+            $normalized[$optionId] = $valueId;
+        }
+
+        foreach (array_keys($selectedOptions) as $optionId) {
+            if (!in_array($optionId, $allowedOptionIds, true)) {
+                $errors["option_{$optionId}"] = 'This option does not belong to the product.';
+            }
+        }
+
+        if (!empty($errors)) {
+            throw new ValidationException($errors, 'Invalid product options.');
+        }
+
+        ksort($normalized);
+        return $normalized;
+    }
+
+    private function hashOptions(array $normalizedOptions): string
+    {
+        return empty($normalizedOptions) ? '' : md5(json_encode($normalizedOptions));
     }
 
     private function getOrCreateCart(int $userId): array

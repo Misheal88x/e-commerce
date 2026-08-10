@@ -7,6 +7,7 @@ namespace App\Controllers\V1\Cart;
 use App\Controllers\BaseController;
 use App\Services\Cart\CartService;
 use App\Validators\Cart\AddToCartValidator;
+use App\Validators\Cart\UpdateCartItemValidator;
 use App\DTOs\Cart\AddToCartDTO;
 use Core\Request;
 use Core\Response;
@@ -37,9 +38,9 @@ class CartController extends BaseController
 
     public function update(Request $request): Response
     {
-        $itemId  = (int) $request->param('item_id');
-        $qty     = (int) $request->body('quantity', 0);
-        $cart    = $this->cartService->updateItem($this->userId(), $itemId, $qty);
+        $itemId = (int) $request->param('item_id');
+        $data   = (new UpdateCartItemValidator())->validate($request->body());
+        $cart   = $this->cartService->updateItem($this->userId(), $itemId, (int) $data['quantity']);
         return $this->success($cart, 'Cart updated.');
     }
 

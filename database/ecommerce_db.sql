@@ -437,19 +437,21 @@ CREATE TABLE IF NOT EXISTS cart_items (
     product_id            BIGINT UNSIGNED NOT NULL,
     quantity              INT UNSIGNED    NOT NULL DEFAULT 1,
     selected_options_json JSON            NULL DEFAULT NULL,
+    options_hash          CHAR(32)        NOT NULL DEFAULT '',
     created_at            TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
     INDEX idx_cart_items_cart_id    (cart_id),
     INDEX idx_cart_items_product_id (product_id),
+    UNIQUE KEY uq_cart_items_line (cart_id, product_id, options_hash),
     CONSTRAINT fk_cart_items_cart_id
         FOREIGN KEY (cart_id) REFERENCES carts (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_cart_items_product_id
         FOREIGN KEY (product_id) REFERENCES products (id)
         ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Items inside a user cart';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Items inside a user cart. options_hash is md5() of the sorted selected_options_json map, or empty string when the product has no options — this makes the same product with different option selections separate line items while still de-duplicating identical ones.';
 
 -- ============================================================
 -- TABLE: orders

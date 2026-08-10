@@ -30,6 +30,23 @@ class ProductOptionValueRepository extends BaseRepository implements ProductOpti
         );
     }
 
+    public function findByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        return $this->fetchAll(
+            "SELECT pov.*, po.name AS option_name
+             FROM product_option_values pov
+             JOIN product_options po ON po.id = pov.product_option_id
+             WHERE pov.id IN ($placeholders)",
+            $ids
+        );
+    }
+
     public function create(array $data): int
     {
         return (int) $this->insert(

@@ -48,6 +48,7 @@ abstract class BaseValidator
             'numeric'        => $this->validateNumeric($field, $value),
             'integer'        => $this->validateInteger($field, $value),
             'boolean'        => $this->validateBoolean($field, $value),
+            'array'          => $this->validateArray($field, $value),
             'date'           => $this->validateDate($field, $value),
             'url'            => $this->validateUrl($field, $value),
             'confirmed'      => $this->validateConfirmed($field, $value, $data),
@@ -132,6 +133,13 @@ abstract class BaseValidator
     {
         if ($value !== null && $value !== '' && filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === null) {
             $this->addError($field, "The {$field} must be a boolean.");
+        }
+    }
+
+    private function validateArray(string $field, mixed $value): void
+    {
+        if ($value !== null && $value !== '' && !is_array($value)) {
+            $this->addError($field, "The {$field} must be an array.");
         }
     }
 
