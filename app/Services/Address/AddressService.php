@@ -20,6 +20,16 @@ class AddressService
         return $this->addressRepo->findByUserId($userId);
     }
 
+    public function getAddress(int $addressId, int $userId): array
+    {
+        $address = $this->addressRepo->findByIdAndUserId($addressId, $userId);
+        if (!$address) {
+            throw new NotFoundException('Address not found.');
+        }
+
+        return $address;
+    }
+
     public function create(AddressDTO $dto): array
     {
         $db = Connection::getInstance();

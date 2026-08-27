@@ -28,6 +28,13 @@ class AddressController extends BaseController
         return $this->success($addresses, 'Addresses retrieved.');
     }
 
+    public function show(Request $request): Response
+    {
+        $id      = (int) $request->param('id');
+        $address = $this->addressService->getAddress($id, $this->userId());
+        return $this->success($address, 'Address retrieved.');
+    }
+
     public function store(Request $request): Response
     {
         $data    = (new CreateAddressValidator())->validate($request->body());
