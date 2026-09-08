@@ -10,7 +10,7 @@ foreach ([
     'auth', 'home', 'products', 'categories',
     'brands', 'deals', 'cart', 'checkout',
     'orders', 'profile', 'addresses', 'sliders',
-    'product-options',
+    'product-options', 'delivery-methods', 'payment-types',
 ] as $group) {
     require __DIR__ . "/V1/{$group}.php";
 }

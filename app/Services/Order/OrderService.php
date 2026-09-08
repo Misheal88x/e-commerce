@@ -9,6 +9,7 @@ use App\Helpers\PaginationHelper;
 use App\Enums\OrderStatus;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\HttpException;
+use App\Exceptions\ValidationException;
 use Core\Logger\Logger;
 
 class OrderService
@@ -17,10 +18,16 @@ class OrderService
         private readonly OrderRepositoryInterface $orderRepo
     ) {}
 
-    public function getUserOrders(int $userId, int $page, int $perPage): array
+    public function getUserOrders(int $userId, int $page, int $perPage, ?string $status = null): array
     {
-        $total = $this->orderRepo->countByUserId($userId);
-        $items = $this->orderRepo->findByUserId($userId, $page, $perPage);
+        if ($status !== null && OrderStatus::tryFrom($status) === null) {
+            throw new ValidationException([
+                'status' => ["The status must be one of: " . implode(', ', array_column(OrderStatus::cases(), 'value')) . '.'],
+            ]);
+        }
+
+        $total = $this->orderRepo->countByUserId($userId, $status);
+        $items = $this->orderRepo->findByUserId($userId, $page, $perPage, $status);
         return PaginationHelper::wrap($items, $total, $page, $perPage);
     }
 

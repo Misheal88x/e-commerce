@@ -23,7 +23,10 @@ class OrderController extends BaseController
     {
         $page    = $this->getPage($request);
         $perPage = $this->getPerPage($request);
-        $result  = $this->orderService->getUserOrders($this->userId(), $page, $perPage);
+        $status  = $request->query('status') !== null && trim((string) $request->query('status')) !== ''
+            ? trim((string) $request->query('status'))
+            : null;
+        $result  = $this->orderService->getUserOrders($this->userId(), $page, $perPage, $status);
         return $this->paginated($result, 'Orders retrieved.');
     }
 

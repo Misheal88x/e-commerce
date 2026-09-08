@@ -209,6 +209,7 @@ CREATE TABLE IF NOT EXISTS advertisements (
 CREATE TABLE IF NOT EXISTS delivery_types (
     id                      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     name                    VARCHAR(255)    NOT NULL,
+    description             VARCHAR(1000)   NULL DEFAULT NULL,
     fee                     DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
     estimated_delivery_time VARCHAR(255)    NULL DEFAULT NULL,
     is_active               TINYINT(1)      NOT NULL DEFAULT 1,
@@ -1974,11 +1975,14 @@ INSERT INTO brands (name, icon, image, is_active) VALUES
 ('Xiaomi',  'xiaomi.svg',  'xiaomi.jpg',  1),
 ('IKEA',    'ikea.svg',    'ikea.jpg',    1);
 
-INSERT INTO delivery_types (name, fee, estimated_delivery_time, is_active) VALUES
-('Standard Delivery',  5.00,  '3-5 business days', 1),
-('Express Delivery',  15.00,  '1-2 business days', 1),
-('Same Day Delivery', 25.00,  'Today by 10 PM',    1),
-('Free Shipping',      0.00,  '5-7 business days', 1);
+-- Migration note: if delivery_types already exists without the description column, run:
+-- ALTER TABLE delivery_types ADD COLUMN description VARCHAR(1000) NULL DEFAULT NULL AFTER name;
+
+INSERT INTO delivery_types (name, description, fee, estimated_delivery_time, is_active) VALUES
+('Standard Delivery',  'Reliable delivery at the standard rate.',      5.00,  '3-5 business days', 1),
+('Express Delivery',   'Faster delivery for urgent orders.',          15.00,  '1-2 business days', 1),
+('Same Day Delivery',  'Get your order delivered the same day.',      25.00,  'Today by 10 PM',    1),
+('Free Shipping',      'No delivery charge, longer delivery time.',    0.00,  '5-7 business days', 1);
 
 INSERT INTO payment_types (name, is_active) VALUES
 ('Cash on Delivery', 1),

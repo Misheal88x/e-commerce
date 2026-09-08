@@ -22,26 +22,45 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
         );
     }
 
-    public function findByUserId(int $userId, int $page, int $perPage): array
+    public function findByUserId(int $userId, int $page, int $perPage, ?string $status = null): array
     {
         $offset = ($page - 1) * $perPage;
+        $params = [$userId];
+
+        $statusClause = '';
+        if ($status !== null) {
+            $statusClause = ' AND o.status = ?';
+            $params[]     = $status;
+        }
+
+        $params[] = $perPage;
+        $params[] = $offset;
+
         return $this->fetchAll(
             'SELECT o.*, COUNT(oi.id) AS total_items
              FROM orders o
              LEFT JOIN order_items oi ON oi.order_id = o.id
-             WHERE o.user_id = ?
+             WHERE o.user_id = ?' . $statusClause . '
              GROUP BY o.id
              ORDER BY o.created_at DESC
              LIMIT ? OFFSET ?',
-            [$userId, $perPage, $offset]
+            $params
         );
     }
 
-    public function countByUserId(int $userId): int
+    public function countByUserId(int $userId, ?string $status = null): int
     {
+        $params = [$userId];
+
+        $statusClause = '';
+        if ($status !== null) {
+            $statusClause = ' AND status = ?';
+            $params[]     = $status;
+        }
+
         return (int) $this->fetchColumn(
-            'SELECT COUNT(*) FROM orders WHERE user_id = ?',
-            [$userId]
+            'SELECT COUNT(*) FROM orders WHERE user_id = ?' . $statusClause,
+            $params
         );
     }
 

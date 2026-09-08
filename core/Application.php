@@ -52,6 +52,8 @@ class Application
             \App\Repositories\Contracts\SliderRepositoryInterface::class    => \App\Repositories\SliderRepository::class,
             \App\Repositories\Contracts\ProductOptionRepositoryInterface::class      => \App\Repositories\ProductOptionRepository::class,
             \App\Repositories\Contracts\ProductOptionValueRepositoryInterface::class => \App\Repositories\ProductOptionValueRepository::class,
+            \App\Repositories\Contracts\DeliveryMethodRepositoryInterface::class    => \App\Repositories\DeliveryMethodRepository::class,
+            \App\Repositories\Contracts\PaymentTypeRepositoryInterface::class       => \App\Repositories\PaymentTypeRepository::class,
         ];
 
         foreach ($bindings as $abstract => $concrete) {
