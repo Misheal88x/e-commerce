@@ -143,4 +143,20 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
             [$orderId]
         );
     }
+
+    public function addStatusHistory(int $orderId, string $status, ?string $note = null): void
+    {
+        $this->execute(
+            'INSERT INTO order_status_history (order_id, status, note, created_at) VALUES (?, ?, ?, NOW())',
+            [$orderId, $status, $note]
+        );
+    }
+
+    public function deleteByIdAndUserId(int $id, int $userId): bool
+    {
+        return $this->execute(
+            'DELETE FROM orders WHERE id = ? AND user_id = ?',
+            [$id, $userId]
+        ) > 0;
+    }
 }

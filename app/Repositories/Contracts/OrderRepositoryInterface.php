@@ -15,4 +15,6 @@ interface OrderRepositoryInterface
     public function updateStatus(int $orderId, string $status): bool;
     public function findItems(int $orderId): array;
     public function findStatusHistory(int $orderId): array;
+    public function addStatusHistory(int $orderId, string $status, ?string $note = null): void;
+    public function deleteByIdAndUserId(int $id, int $userId): bool;
 }

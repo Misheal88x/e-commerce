@@ -109,6 +109,8 @@ class CheckoutService
                 'payment_name'     => $payment['name'],
             ]);
 
+            $this->orderRepo->addStatusHistory($orderId, OrderStatus::Pending->value);
+
             // Create order items + decrement stock
             foreach ($items as $item) {
                 $modifier = (float) $item['options_price_modifier'];

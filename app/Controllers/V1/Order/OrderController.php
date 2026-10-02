@@ -43,4 +43,11 @@ class OrderController extends BaseController
         $order = $this->orderService->cancelOrder($id, $this->userId());
         return $this->success($order, 'Order canceled successfully.');
     }
+
+    public function destroy(Request $request): Response
+    {
+        $id = (int) $request->param('id');
+        $this->orderService->deleteOrder($id, $this->userId());
+        return $this->deleted('Order deleted successfully.');
+    }
 }
