@@ -113,7 +113,8 @@ class CartService
     /**
      * Validates the client-supplied option selections against the product's
      * option groups: every group must have exactly one value selected, and
-     * every selected value must actually belong to its group.
+     * every selected value must actually belong to its group. When no
+     * selection is sent at all, the first value of each group is used.
      *
      * @param array<int,int> $selectedOptions option_id => option_value_id
      * @return array<int,int> normalized, key-sorted option_id => option_value_id
@@ -127,6 +128,10 @@ class CartService
                 throw new HttpException('This product does not have selectable options.', 422);
             }
             return [];
+        }
+
+        if (empty($selectedOptions)) {
+            $selectedOptions = $this->defaultSelectedOptions($options);
         }
 
         $errors           = [];
@@ -164,6 +169,25 @@ class CartService
 
         ksort($normalized);
         return $normalized;
+    }
+
+    /**
+     * Picks the first value (by sort order) of every option group.
+     * Groups without any values are skipped, so they surface as a
+     * validation error later.
+     *
+     * @return array<int,int> option_id => option_value_id
+     */
+    private function defaultSelectedOptions(array $options): array
+    {
+        $defaults = [];
+        foreach ($options as $option) {
+            $values = $this->productOptionValueRepo->findByOptionId((int) $option['id']);
+            if (!empty($values)) {
+                $defaults[(int) $option['id']] = (int) $values[0]['id'];
+            }
+        }
+        return $defaults;
     }
 
     private function hashOptions(array $normalizedOptions): string
