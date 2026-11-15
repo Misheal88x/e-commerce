@@ -54,6 +54,7 @@ class Application
             \App\Repositories\Contracts\ProductOptionValueRepositoryInterface::class => \App\Repositories\ProductOptionValueRepository::class,
             \App\Repositories\Contracts\DeliveryMethodRepositoryInterface::class    => \App\Repositories\DeliveryMethodRepository::class,
             \App\Repositories\Contracts\PaymentTypeRepositoryInterface::class       => \App\Repositories\PaymentTypeRepository::class,
+            \App\Repositories\Contracts\WishlistRepositoryInterface::class          => \App\Repositories\WishlistRepository::class,
         ];
 
         foreach ($bindings as $abstract => $concrete) {

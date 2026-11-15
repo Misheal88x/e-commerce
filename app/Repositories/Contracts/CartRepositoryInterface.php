@@ -16,4 +16,7 @@ interface CartRepositoryInterface
     public function removeItem(int $cartItemId): bool;
     public function clearCart(int $cartId): void;
     public function getItemCount(int $cartId): int;
+
+    /** @return int[] Distinct IDs of active products currently in the user's cart. */
+    public function findProductIdsByUserId(int $userId): array;
 }

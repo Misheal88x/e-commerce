@@ -11,6 +11,7 @@ foreach ([
     'brands', 'deals', 'cart', 'checkout',
     'orders', 'profile', 'addresses', 'sliders',
     'product-options', 'delivery-methods', 'payment-types',
+    'wishlist',
 ] as $group) {
     require __DIR__ . "/V1/{$group}.php";
 }

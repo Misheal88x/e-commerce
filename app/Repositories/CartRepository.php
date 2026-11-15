@@ -81,4 +81,19 @@ class CartRepository extends BaseRepository implements CartRepositoryInterface
             [$cartId]
         );
     }
+
+    public function findProductIdsByUserId(int $userId): array
+    {
+        $rows = $this->fetchAll(
+            'SELECT DISTINCT ci.product_id
+             FROM carts c
+             JOIN cart_items ci ON ci.cart_id = c.id
+             JOIN products p    ON p.id = ci.product_id AND p.is_active = 1 AND p.deleted_at IS NULL
+             WHERE c.user_id = ?
+             ORDER BY ci.product_id',
+            [$userId]
+        );
+
+        return array_map('intval', array_column($rows, 'product_id'));
+    }
 }
